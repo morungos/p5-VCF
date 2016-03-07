@@ -15,14 +15,13 @@ use VCF;
 use VCF::Reader;
 
 BEGIN {
-    use Test::Most tests => 59;
+    use Test::Most tests => 57;
 }
 
 my $path = $FindBin::RealBin;
 
 my $debug = ($ARGV[0] && $ARGV[0] eq '-d') ? 1 : 0;
 
-test_bgzip_and_tabix("$path/../examples/merge-test-a.vcf");
 test_validator($path,"$path/../examples/valid-3.3.vcf");
 test_validator($path,"$path/../examples/valid-4.0.vcf");
 test_validator($path,"$path/../examples/valid-4.1.vcf");
@@ -39,20 +38,6 @@ test_api();
 exit;
 
 #--------------------------------------
-
-sub test_bgzip_and_tabix
-{
-    my ($file) = @_;
-    my $cmd;
-
-    $cmd = "cat $file | bgzip -c > $file.gz";
-    system($cmd);
-    is($?,0,"Is bgzip OK? .. $cmd");
-
-    $cmd = "tabix $file.gz";
-    system($cmd);
-    is($?,0,"Is tabix OK? .. $cmd");
-}
 
 sub test_validator
 {
