@@ -18,7 +18,7 @@ BEGIN {
     use Test::Most tests => 57;
 }
 
-my $path = $FindBin::RealBin;
+my $path = $FindBin::RealBin.'/../lib/';
 
 my $debug = ($ARGV[0] && $ARGV[0] eq '-d') ? 1 : 0;
 
