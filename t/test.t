@@ -5,10 +5,11 @@
 # Usage: test.t [-d]
 #
 
+use 5.008;
 use strict;
 use warnings;
 use Carp;
-use IPC::Open2;
+#use IPC::Open2;
 use FindBin;
 use lib "$FindBin::Bin";
 use VCF;
@@ -18,7 +19,7 @@ BEGIN {
     use Test::Most tests => 57;
 }
 
-my $path = $FindBin::RealBin;
+my $path = $FindBin::RealBin.'/../lib/';
 
 my $debug = ($ARGV[0] && $ARGV[0] eq '-d') ? 1 : 0;
 
@@ -54,8 +55,9 @@ sub test_format_validation
     my ($path,$version) = @_;
 
     my ($chld_in,$chld_out);
-    my $cmd = "perl -I$path -MVCF -e validate 2>&1";
-    my $pid = open2($chld_out, $chld_in, $cmd);
+    my $str = '';
+    #my $cmd = "perl -I$path -MVCF -e validate 2>&1";
+    #my $pid = open2($chld_out, $chld_in, $cmd);
 
     my $vcf = VCF->new(version=>$version);
     $vcf->recalc_ac_an(2);
@@ -73,14 +75,14 @@ sub test_format_validation
     }
     $vcf->add_columns('NA0001','NA0002');
     print $vcf->format_header() unless !$debug;
-    print $chld_in $vcf->format_header();
+    $str .= $vcf->format_header();
 
     my %rec = ( CHROM=>1, POS=>1, REF=>'A', QUAL=>$$vcf{defaults}{QUAL}, FORMAT=>['GT'] );
     $rec{gtypes}{NA0001}{GT} = 'A/A';
     $rec{gtypes}{NA0002}{GT} = $$vcf{defaults}{GT};
     $vcf->format_genotype_strings(\%rec);
     print $vcf->format_line(\%rec) unless !$debug;
-    print $chld_in $vcf->format_line(\%rec);
+    $str .= $vcf->format_line(\%rec);
 
     $rec{POS} = 2;
     $rec{gtypes}{NA0002}{GT} = 'IA|D1';
@@ -91,23 +93,15 @@ sub test_format_validation
     }
     $vcf->format_genotype_strings(\%rec);
     print $vcf->format_line(\%rec) unless !$debug;
-    print $chld_in $vcf->format_line(\%rec);
-    close($chld_in);
+    $str .= $vcf->format_line(\%rec);
+    open my $fh_in, '<', \$str;
 
-    my @exp = ();
-    my @out = ();
-    while (my $line=<$chld_out>)
-    {
-        chomp($line);
-        push @out,$line;
-    }
-    close($chld_out);
-    waitpid $pid, 0;
-
-    if ( !is_deeply(\@out,\@exp,"Testing formatting followed by validation .. $cmd") )
-    {
-        print STDERR @out;
-    }
+    eval {
+      my $vcf1 = VCF->new(fh => $fh_in);
+      $vcf1->run_validation();
+    };
+    my $err = $@;
+    is($err, '', "Testing formatting followed by validation");
 }
 
 sub test_parse
